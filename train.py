@@ -37,10 +37,6 @@ VOLUME_SIZE = 25000
 
 export_path = 'net/exports'
 
-#Get the data from the game files
-validation_test, validation_test_l = getTest(N_INPUT, 40, 44)
-whiteWins, blackWins = getTrain(N_INPUT, TOTAL_MLP, VOLUME_SIZE)
-
 # init
 def weight_variable(n_in, n_out):
   cur_dev = math.sqrt(3.0/(n_in+n_out))
@@ -81,16 +77,6 @@ def getBatchAE(start, size):
 		xR.append(blackWins[i])
 		random.shuffle(xR)
 	return xR
-
-
-learning_rate = tf.placeholder(tf.float32, shape=[])
-
-raw_x = tf.placeholder(tf.float32, shape=[None, N_INPUT])
-x = tf.placeholder(tf.float32, shape=[None, 2, N_INPUT], name="input")
-first_board = tf.placeholder(tf.float32, shape=[None, N_INPUT])
-second_board = tf.placeholder(tf.float32, shape=[None, N_INPUT])
-y_ = tf.placeholder(tf.float32, shape=[None,2])
-
 
 weights = {
 	'e1' : weight_variable(N_INPUT, ENCODING_1),	
@@ -168,6 +154,18 @@ def model(games, weights, biases):
 	return pred
 
 
+#Get the data from the game files
+validation_test, validation_test_l = getTest(N_INPUT, 40, 44)
+whiteWins, blackWins = getTrain(N_INPUT, TOTAL_MLP, VOLUME_SIZE)
+
+learning_rate = tf.placeholder(tf.float32, shape=[])
+
+raw_x = tf.placeholder(tf.float32, shape=[None, N_INPUT])
+x = tf.placeholder(tf.float32, shape=[None, 2, N_INPUT], name="input")
+first_board = tf.placeholder(tf.float32, shape=[None, N_INPUT])
+second_board = tf.placeholder(tf.float32, shape=[None, N_INPUT])
+y_ = tf.placeholder(tf.float32, shape=[None,2])
+
 #layer by layer loss
 
 encoded_1 = decode(encode(raw_x, weights, biases, 1), weights, biases, 1)
@@ -201,78 +199,75 @@ mlp_train_step = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cr
 init = tf.initialize_all_variables()
 saver = tf.train.Saver()
 
-with tf.Session() as sess:
-	sess.run(init)
+with tf.device('/gpu:0'):
+	with tf.Session() as sess:
+		sess.run(init)
 	
-	if TRAIN_AUTOENCODER:
-		total_batch = int(TOTAL_AE/BS_AE)
-		for epoch in range(EPOCHS_AE):
-			cur_rate = RATE_AE * (DECAY_AE**epoch)
-			for i in range(total_batch): 
-				batch_xs = getBatchAE(i, BS_AE)
-				_, cost = sess.run([ae_train_step_1, l2_loss_1], feed_dict={raw_x: batch_xs, learning_rate: cur_rate})
+		if TRAIN_AUTOENCODER:
+			total_batch = int(TOTAL_AE/BS_AE)
+			for epoch in range(EPOCHS_AE):
+				cur_rate = RATE_AE * (DECAY_AE**epoch)
+				for i in range(total_batch):
+					batch_xs = getBatchAE(i, BS_AE)
+					_, cost = sess.run([ae_train_step_1, l2_loss_1], feed_dict={raw_x: batch_xs, learning_rate: cur_rate})
 
-			saver.save(sess, 'net/encoder_ae1.ckpt')
-			print("AE_1 Epoch:", '%04d' % (epoch+1),
-			"cost=", "{:.9f}".format(cost))
+				saver.save(sess, 'net/encoder_ae1.ckpt')
+				print("AE_1 Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(cost))
 
-		for epoch in range(EPOCHS_AE):
-			cur_rate = RATE_AE * (DECAY_AE**epoch)
-			for i in range(total_batch): 
-				batch_xs = getBatchAE(i, BS_AE)
-				_, cost = sess.run([ae_train_step_2, l2_loss_2], feed_dict={raw_x: batch_xs, learning_rate: cur_rate})
+			for epoch in range(EPOCHS_AE):
+				cur_rate = RATE_AE * (DECAY_AE**epoch)
+				for i in range(total_batch):
+					batch_xs = getBatchAE(i, BS_AE)
+					_, cost = sess.run([ae_train_step_2, l2_loss_2], feed_dict={raw_x: batch_xs, learning_rate: cur_rate})
 
-			saver.save(sess, 'net/encoder_ae2.ckpt')
-			print("AE_2 Epoch:", '%04d' % (epoch+1),
-			"cost=", "{:.9f}".format(cost))
+				saver.save(sess, 'net/encoder_ae2.ckpt')
+				print("AE_2 Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(cost))
 		
-		for epoch in range(EPOCHS_AE):
-			cur_rate = RATE_AE * (DECAY_AE**epoch)
-			for i in range(total_batch): 
-				batch_xs = getBatchAE(i, BS_AE)
-				_, cost = sess.run([ae_train_step_3, l2_loss_3], feed_dict={raw_x: batch_xs, learning_rate: cur_rate})
+			for epoch in range(EPOCHS_AE):
+				cur_rate = RATE_AE * (DECAY_AE**epoch)
+				for i in range(total_batch):
+					batch_xs = getBatchAE(i, BS_AE)
+					_, cost = sess.run([ae_train_step_3, l2_loss_3], feed_dict={raw_x: batch_xs, learning_rate: cur_rate})
 
-			saver.save(sess, 'net/encoder_ae3.ckpt')
-			print("AE_3 Epoch:", '%04d' % (epoch+1),
-			"cost=", "{:.9f}".format(cost))
+				saver.save(sess, 'net/encoder_ae3.ckpt')
+				print("AE_3 Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(cost))
 		
-		for epoch in range(EPOCHS_AE):
-			cur_rate = RATE_AE * (DECAY_AE**epoch)
-			for i in range(total_batch): 
-				batch_xs = getBatchAE(i, BS_AE)
-				_, cost = sess.run([ae_train_step_4, l2_loss_4], feed_dict={raw_x: batch_xs, learning_rate: cur_rate})
+			for epoch in range(EPOCHS_AE):
+				cur_rate = RATE_AE * (DECAY_AE**epoch)
+				for i in range(total_batch):
+					batch_xs = getBatchAE(i, BS_AE)
+					_, cost = sess.run([ae_train_step_4, l2_loss_4], feed_dict={raw_x: batch_xs, learning_rate: cur_rate})
 
-			saver.save(sess, 'net/encoder_ae4.ckpt')
-			print("AE_4 Epoch:", '%04d' % (epoch+1),
-			"cost=", "{:.9f}".format(cost))
+				saver.save(sess, 'net/encoder_ae4.ckpt')
+				print("AE_4 Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(cost))
 	
-	if TRAIN_NET:
-		#saver.restore(sess, 'net/encoder_ae3.ckpt')
-		total_batch = int(TOTAL_MLP/BS_MLP)
-		for epoch in range(EPOCHS_MLP):
-			cur_rate = RATE_MLP * (DECAY_MLP**epoch)
-			whiteWins = np.random.permutation(whiteWins)
-			blackWins = np.random.permutation(blackWins)
+		if TRAIN_NET:
+			#saver.restore(sess, 'net/encoder_ae3.ckpt')
+			total_batch = int(TOTAL_MLP/BS_MLP)
+			for epoch in range(EPOCHS_MLP):
+				cur_rate = RATE_MLP * (DECAY_MLP**epoch)
+				whiteWins = np.random.permutation(whiteWins)
+				blackWins = np.random.permutation(blackWins)
 
-			for i in range(total_batch): 
-				batch_xs, batch_ys = getBatchMLP(i*BS_MLP, BS_MLP)
-				_, cost = sess.run([mlp_train_step, cross_entropy], feed_dict={x: batch_xs, y_:batch_ys, learning_rate: cur_rate})
+				for i in range(total_batch):
+					batch_xs, batch_ys = getBatchMLP(i*BS_MLP, BS_MLP)
+					_, cost = sess.run([mlp_train_step, cross_entropy], feed_dict={x: batch_xs, y_:batch_ys, learning_rate: cur_rate})
 
-			print("MLP Epoch:", '%04d' % (epoch+1),
-			"cost=", "{:.9f}".format(cost))
+				print("MLP Epoch:", '%04d' % (epoch+1),
+				"cost=", "{:.9f}".format(cost))
 
-			model = td.Model()
-			model.add(y, sess)
-			model.save("model.pkl")
-			saver.save(sess, 'net/net.ckpt')
-			if epoch%3 == 2:	
-				correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_,1))
-				accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-				v_acc = sess.run(accuracy, feed_dict = {x: validation_test, y_: validation_test_l})
-				print("Validation accuracy", "{:.9f}".format(v_acc))
+				model = td.Model()
+				model.add(y, sess)
+				model.save("model.pkl")
+				saver.save(sess, 'net/net.ckpt')
+				if epoch%3 == 2:
+					correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_,1))
+					accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+					v_acc = sess.run(accuracy, feed_dict = {x: validation_test, y_: validation_test_l})
+					print("Validation accuracy", "{:.9f}".format(v_acc))
 		
-		#This code can be used to check the training accuracy
-		#train_test, train_test_l = getTest(N_INPUT, 0, 40)
-		#t_acc = sess.run(accuracy, feed_dict = {x: train_test, y_: train_test_l})
-		#print("Train accuracy", "{:.9f}".format(t_acc))
+			#This code can be used to check the training accuracy
+			#train_test, train_test_l = getTest(N_INPUT, 0, 40)
+			#t_acc = sess.run(accuracy, feed_dict = {x: train_test, y_: train_test_l})
+			#print("Train accuracy", "{:.9f}".format(t_acc))
 
