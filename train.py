@@ -4,8 +4,8 @@ import numpy as np
 import math
 from loader import *
 
-TRAIN_AUTOENCODER = 0 
-TRAIN_NET = 1
+TRAIN_AUTOENCODER = 1
+TRAIN_NET = 0
 
 TOTAL_AE = 250000
 TOTAL_MLP = 750000
@@ -154,12 +154,12 @@ def singleEncode(c, weights, biases, level):
 def model(games, weights, biases):
 	first_board = games[:,0,:]
 	second_board = tf.squeeze(tf.slice(games, [0,1,0], [-1, 1, -1]), squeeze_dims=[1])
-	[first_board, second_board] = tf.unpack(games, axis=1)
+	[first_board, second_board] = tf.unstack(games, axis=1)
 	
 	firstboard_encoding = encode(first_board, weights, biases, 4)
 	secondboard_encoding = encode(second_board, weights, biases, 4)
 
-	h_1 = tf.concat(1, [firstboard_encoding,secondboard_encoding])
+	h_1 = tf.concat([firstboard_encoding,secondboard_encoding], 1)
 	h_2 = fully_connected(h_1, weights['w1'], biases['b1'])
 	h_3 = fully_connected(h_2, weights['w2'], biases['b2'])
 	h_4 = fully_connected(h_3, weights['w3'], biases['b3'])
@@ -171,19 +171,19 @@ def model(games, weights, biases):
 #layer by layer loss
 
 encoded_1 = decode(encode(raw_x, weights, biases, 1), weights, biases, 1)
-l2_loss_1 = tf.reduce_mean(tf.nn.l2_loss(tf.sub(encoded_1, raw_x)))
+l2_loss_1 = tf.reduce_mean(tf.nn.l2_loss(tf.subtract(encoded_1, raw_x)))
 
 half_encoded2 = encode(raw_x, weights, biases, 1)
 encoded_2 = decode(singleEncode(half_encoded2, weights, biases, 2), weights, biases, 2)
-l2_loss_2 = tf.reduce_mean(tf.nn.l2_loss(tf.sub(encoded_2, half_encoded2)))
+l2_loss_2 = tf.reduce_mean(tf.nn.l2_loss(tf.subtract(encoded_2, half_encoded2)))
 
 half_encoded3 = encode(raw_x, weights, biases, 2)
 encoded_3 = decode(singleEncode(half_encoded3, weights, biases, 3), weights, biases, 3)
-l2_loss_3 = tf.reduce_mean(tf.nn.l2_loss(tf.sub(encoded_3, half_encoded3)))
+l2_loss_3 = tf.reduce_mean(tf.nn.l2_loss(tf.subtract(encoded_3, half_encoded3)))
 
 half_encoded4 = encode(raw_x, weights, biases, 3)
 encoded_4 = decode(singleEncode(half_encoded4, weights, biases, 4), weights, biases, 4)
-l2_loss_4 = tf.reduce_mean(tf.nn.l2_loss(tf.sub(encoded_4, half_encoded4)))
+l2_loss_4 = tf.reduce_mean(tf.nn.l2_loss(tf.subtract(encoded_4, half_encoded4)))
 
 ae_train_step_1 = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(l2_loss_1, var_list=[weights['e1'], biases['e1'], weights['d4'], biases['d4']])
 ae_train_step_2 = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(l2_loss_2, var_list=[weights['e2'], biases['e2'], weights['d3'], biases['d3']])
@@ -195,7 +195,7 @@ ae_train_step_4 = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
 #full model
 y = model(x, weights, biases)
 
-cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y,y_))
+cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y,labels=y_))
 mlp_train_step = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
 
 init = tf.initialize_all_variables()
