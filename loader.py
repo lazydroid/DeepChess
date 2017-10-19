@@ -28,7 +28,10 @@ def getTest(input_size, start, finish):
 
 	return (temp_test, test_l)
 
-def getTrain(input_size, total, volume_size):
+def getTrain(input_size, total, volume_size, exit_early = False):
+	if exit_early :
+		total = volume_size		# just one volume
+
 	whiteWins = np.zeros((total, input_size))
 	blackWins = np.zeros((total, input_size))
 
@@ -52,5 +55,7 @@ def getTrain(input_size, total, volume_size):
 
 			whiteWins[i*volume_size+j] = first
 			blackWins[i*volume_size+j] = second 
-	
+
+		if exit_early : break
+
 	return (whiteWins, blackWins)
